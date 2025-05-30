@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="style.css" />
+    <title></title>
+
+</head>
+
+<body>
+
+<h1>Scavenger Hunt</h1>
+
+<div id="teamFormDiv" class="hidden">
+    <form id="teamForm">
+        <label for="teamName">Enter Team Name:</label>
+        <input type="text" id="teamName" name="teamName" required />
+        <button type="submit">Join Game</button>
+    </form>
+</div>
+
+<div id="tasksDiv" class="hidden">
+    <div id="taskList"></div>
+</div>
+
+<button id="adminToggle" style="position: fixed; bottom: 5px; right: 5px; display:none;">.</button>
+
+<div id="adminTaskDiv" class="hidden">
+    <div id="adminTaskList"></div>
+    <form id="adminTaskForm">
+        <h2>Admin Task Creation</h2>
+
+        <label for="name">Task Name:</label>
+        <input type="text" id="name" name="name" required /><br/>
+
+        <label for="riddle">Riddle:</label>
+        <input type="text" id="riddle" name="riddle" required /><br/>
+
+        <label for="description">Description:</label>
+        <input type="text" id="description" name="description" /><br/>
+
+        <label for="location">Location:</label>
+        <input type="text" id="location" name="location" required /><br/>
+
+        <label for="hasSubtask">
+            <input type="checkbox" id="hasSubtask" name="hasSubtask" />
+            Has Subtask
+        </label><br/>
+
+        <div id="subtaskFields" style="display: none; margin-left: 20px;">
+            <label for="subtaskName">Subtask Name:</label>
+            <input type="text" id="subtaskName" name="subtaskName" /><br/>
+
+            <label for="subtaskDescription">Subtask Description:</label>
+            <input type="text" id="subtaskDescription" name="subtaskDescription" /><br/>
+        </div>
+
+        <button type="submit">Create Task</button>
+    </form>
+    <br> <br>
+</div>
+<script type="module" src="app.js"></script>
+
+</body>

@@ -1,0 +1,180 @@
+/* General reset and base */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    background: #f9f9f9;
+    color: #222;
+    padding: 1rem;
+    max-width: 600px;
+    margin: auto;
+}
+
+/* Title */
+h1 {
+    font-weight: 700;
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+}
+
+/* Forms */
+form {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+label {
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    font-size: 1rem;
+}
+
+input[type="text"] {
+    padding: 0.6rem 0.8rem;
+    font-size: 1rem;
+    border: 1.8px solid #ccc;
+    border-radius: 6px;
+    transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+/* Buttons */
+button {
+    background: #3498db;
+    border: none;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+button:hover,
+button:focus {
+    background: #2980b9;
+    outline: none;
+}
+
+/* Task list container */
+#taskList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* Each task box */
+.task {
+    background: white;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+}
+
+.task h3 {
+    color: #34495e;
+    margin-bottom: 0.4rem;
+}
+
+.task p {
+    font-style: italic;
+    color: #666;
+    margin-bottom: 0.6rem;
+}
+
+/* Location label and span */
+.task > span,
+.task > p + span {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* Forms inside tasks */
+.task form {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.task input[type="text"] {
+    flex: 1;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Shake animation for wrong guess */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+.shake {
+    animation: shake 0.4s ease;
+    border-color: #e74c3c !important;
+}
+/* Slide-out-right animation */
+@keyframes slideOutRight {
+    0% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+.slide-out-right {
+    animation: slideOutRight 0.5s ease-out forwards;
+}
+#taskList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    transition: all 0.3s ease-in-out;
+}
+
+.completed {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.task {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: #f9f9f9;
+}
+
+/* Responsive tweaks */
+@media (max-width: 400px) {
+    body {
+        padding: 0.75rem 0.5rem;
+    }
+
+    button {
+        font-size: 0.95rem;
+        padding: 0.65rem;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+}
