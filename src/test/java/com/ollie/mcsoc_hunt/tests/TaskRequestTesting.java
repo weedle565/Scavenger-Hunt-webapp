@@ -134,7 +134,7 @@ public class TaskRequestTesting {
         censoredTask.setId(task.getId());
         censoredTask.setName(task.getName());
         censoredTask.setDescription(task.getDescription());
-        censoredTask.setCompleted(task.isCompleted());
+        censoredTask.setCompleted(task.getCompleted());
         censoredTask.setRiddle(task.getRiddle());
         censoredTask.setLocation("Hidden");
 
@@ -166,7 +166,7 @@ public class TaskRequestTesting {
         censoredTask.setId(task.getId());
         censoredTask.setName(task.getName());
         censoredTask.setDescription(task.getDescription());
-        censoredTask.setCompleted(task.isCompleted());
+        censoredTask.setCompleted(task.getCompleted());
         censoredTask.setRiddle(task.getRiddle());
         censoredTask.setLocation("Hidden");
 

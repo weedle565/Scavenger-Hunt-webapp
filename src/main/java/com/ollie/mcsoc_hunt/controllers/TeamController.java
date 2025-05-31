@@ -2,8 +2,10 @@ package com.ollie.mcsoc_hunt.controllers;
 
 import com.ollie.mcsoc_hunt.entities.Team;
 import com.ollie.mcsoc_hunt.helpers.GuessResults;
+import com.ollie.mcsoc_hunt.helpers.JwtGenerator;
 import com.ollie.mcsoc_hunt.services.TeamService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -47,14 +49,18 @@ public class TeamController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody Team teamDetails) {
+    public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody Team teamDetails, @RequestHeader("Authorization") String auth) {
+
+        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
         Team updatedTeam = teamService.updateTeam(id, teamDetails);
 
         return ResponseEntity.ok(updatedTeam);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTeam(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteTeam(@PathVariable Long id, @RequestHeader("Authorization") String auth) {
+        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         teamService.deleteTeam(id);
         return ResponseEntity.noContent().build();

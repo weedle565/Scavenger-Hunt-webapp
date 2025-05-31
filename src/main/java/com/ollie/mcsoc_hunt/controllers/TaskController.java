@@ -2,8 +2,11 @@ package com.ollie.mcsoc_hunt.controllers;
 
 import com.ollie.mcsoc_hunt.entities.Task;
 import com.ollie.mcsoc_hunt.helpers.GuessResults;
+import com.ollie.mcsoc_hunt.helpers.JwtGenerator;
 import com.ollie.mcsoc_hunt.services.TaskService;
+import io.jsonwebtoken.JwtParser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -26,16 +29,13 @@ public class TaskController {
     @GetMapping("/team/{id}")
     public List<Task> getAllTasks(@PathVariable Long id) {
 
-
         return taskService.getAllTasks(id);
     }
 
     @PostMapping
-    public ResponseEntity<Task> createTask(@RequestBody Task task) {
+    public ResponseEntity<Task> createTask(@RequestBody Task task, @RequestHeader("Authorization") String auth) {
 
-        Logger.getLogger("Task controller").info("Creating a task");
-
-        System.out.println(task);
+        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         URI location = null;
         Task createdTask = null;
@@ -48,7 +48,7 @@ public class TaskController {
                     .buildAndExpand(createdTask.getId())
                     .toUri();
         } catch (Exception e) {
-            e.printStackTrace();
+            Logger.getLogger("Task").warning("Failed to create task");
         }
 
         if (location == null) return ResponseEntity.badRequest().build();
@@ -65,14 +65,20 @@ public class TaskController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task taskDetails)  {
+    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task taskDetails, @RequestHeader("Authorization") String auth)  {
+
+        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
         Task updatedTask = taskService.updateTask(id, taskDetails);
 
         return ResponseEntity.ok(updatedTask);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTeam(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id, @RequestHeader("Authorization") String auth) {
+
+        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
     }

@@ -28,19 +28,6 @@ public class LoginController {
         this.loginService = loginService;
     }
 
-    // Fully remove users capability to add new users to prevent abuse. Only one user is required
-//    @PostMapping("/register")
-//    public ResponseEntity<User> register(@RequestBody LoginDTO loginDTO) {
-//        User user = loginService.register(loginDTO.getUsername(), loginDTO.getPassword());
-//        System.out.println(user);
-//        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-//                .path("/{id}")
-//                .buildAndExpand(user.getUsername())
-//                .toUri();
-//
-//        return ResponseEntity.created(location).body(user);
-//    }
-
     @PostMapping
     public ResponseEntity<?> login(@RequestBody LoginDTO loginDTO) {
 

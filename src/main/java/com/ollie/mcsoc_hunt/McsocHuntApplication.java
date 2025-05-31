@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 /*
 TODO:
 - Documentation!
-- Authentication of critical endpoints
 - More robust tests
 - Real testing
 
