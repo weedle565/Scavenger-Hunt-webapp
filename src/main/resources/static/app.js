@@ -16,11 +16,11 @@ function getCookie(name) {
     return null;
 }
 
-async function createTeam(name) {
+async function createTeam(name, password) {
     const resp = await fetch(`${API_BASE}/team`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, password}),
     });
     if (!resp.ok) throw new Error('Failed to create team');
     return resp.json();
@@ -439,6 +439,33 @@ document.getElementById('adminTaskForm').addEventListener('submit', async (e) =>
     document.getElementById('subtaskFields').style.display = 'none';  // Hide again after submit
 });
 
+function setActiveStyleSheet(title) {
+    const links = document.querySelectorAll('link[rel~="stylesheet"], link[rel="alternate stylesheet"]');
+    links.forEach(link => {
+
+        link.disabled = link.title !== title;
+    });
+    localStorage.setItem('selectedTheme', title);
+}
+
+// On load, set theme and listen for changes
+window.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('selectedTheme') || 'Base';
+    setActiveStyleSheet(savedTheme);
+    document.getElementById('themeSelect').value = savedTheme;
+
+    document.getElementById('themeSelect').addEventListener('change', function () {
+        setActiveStyleSheet(this.value);
+    });
+});
+
+const themeSwitcher = document.getElementById('themeSwitcher');
+const toggleBtn = document.getElementById('themeToggle');
+
+toggleBtn.addEventListener('click', () => {
+    themeSwitcher.classList.toggle('open');
+});
+
 // On page load check for teamId cookie or show form
 async function init() {
     let teamId = getCookie('teamId');
@@ -451,9 +478,11 @@ async function init() {
             e.preventDefault();
             const name = document.getElementById('teamName').value.trim();
             if (!name) return alert('Please enter a team name');
+            const pass = document.getElementById('password').value.trim();
+            if (!pass) return alert("Please enter a password");
 
             try {
-                const team = await createTeam(name);
+                const team = await createTeam(name, pass);
                 setCookie('teamId', team.id);
                 teamId = team.id;
                 teamFormDiv.style.display = 'none';

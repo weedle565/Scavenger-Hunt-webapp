@@ -1,132 +1,52 @@
-/* Reset & base */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
 
 body {
-    font-family: 'Segoe UI', Roboto, sans-serif;
-    background-color: #f5f8fa;
-    color: #2c3e50;
-    padding: 1.5rem 1rem;
+    font-family: 'Orbitron', sans-serif;
+    background: #0f0f1f;
+    color: #0ff;
+    padding: 1.5rem;
     max-width: 720px;
     margin: auto;
 }
 
-/* Headings */
 h1 {
-    font-size: 2.2rem;
+    font-size: 2rem;
     text-align: center;
-    color: #1e3a5f;
-    margin-bottom: 2rem;
-}
-
-h2, h3 {
-    color: #2c3e50;
-}
-
-/* General layout */
-.hidden {
-    display: none;
-}
-
-/* Forms */
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 1rem;
-}
-
-label {
-    font-size: 1rem;
-    font-weight: 600;
+    color: #ff00ff;
+    text-shadow: 0 0 10px #ff00ff;
+    margin-bottom: 1.5rem;
 }
 
 input[type="text"] {
+    background: #111133;
+    border: 2px solid #0ff;
     padding: 0.75rem;
-    border: 2px solid #d0d7de;
+    color: #fff;
     border-radius: 8px;
-    font-size: 1rem;
-    transition: border-color 0.2s;
 }
 
-input[type="text"]:focus {
-    border-color: #3498db;
-    outline: none;
-}
-
-/* Buttons */
 button {
-    background-color: #3498db;
-    color: white;
-    font-weight: 600;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
+    background: #ff00ff;
+    color: #000;
     border: none;
+    padding: 0.75rem;
     border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.25s ease-in-out;
+    box-shadow: 0 0 10px #ff00ff;
 }
 
-button:hover,
-button:focus {
-    background-color: #2980b9;
-    outline: none;
-}
-
-/* Task container */
-#taskList {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-/* Task card */
 .task {
-    background-color: #ffffff;
-    border-radius: 12px;
-    padding: 1.25rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transition: transform 0.3s;
+    background: #1a1a2e;
+    border-left: 6px solid #0ff;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
 }
 
-.task h3 {
-    margin-bottom: 0.5rem;
-    font-size: 1.25rem;
-    color: #1a2b44;
+.hidden {
+    display: none;
 }
-
-.task p {
-    font-style: italic;
-    color: #6c757d;
-    margin-bottom: 0.5rem;
-}
-
-.task > span,
-.task > p + span {
-    font-weight: 600;
-    color: #2c3e50;
-}
-
-/* Input and guess section inside tasks */
-.task form {
-    flex-direction: row;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-}
-
-.task input[type="text"] {
-    flex: 1;
-}
-
-/* Subtask section */
-#subtaskFields {
-    padding-left: 1rem;
-    border-left: 3px solid #ddd;
-}
+/* Animations unchanged */
 
 /* Animations */
 @keyframes shake {
@@ -215,20 +135,22 @@ button:focus {
     top: 10px;
     left: 10px;
     z-index: 9999;
-    background: #ffffff;
+    background: #111133;
     padding: 8px 12px;
     border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    font-family: 'Segoe UI', Roboto, sans-serif;
+    box-shadow: 0 0 12px #0ff;
+    font-family: 'Orbitron', sans-serif;
 }
 
 #themeSelect {
-    background: #f9f9f9;
-    color: #2c3e50;
-    font-size: 1rem;
+    background: #0f0f1f;
+    color: #0ff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.95rem;
     padding: 6px 10px;
-    border: 1px solid #d0d7de;
+    border: 2px solid #0ff;
     border-radius: 6px;
+    box-shadow: 0 0 6px #0ff;
 }
 
 #themeToggle {
@@ -268,8 +190,8 @@ button:focus {
         position: relative;
         z-index: 10000;
 
-        color: #d0d7de; /* or theme color */
-        background: #f9f9f9;
+        color: #111133; /* or theme color */
+        background: #0ff;
     }
 
     #themeSelect {
@@ -287,8 +209,8 @@ button:focus {
         transform: translateY(-150%);
         transition: opacity 0.3s ease, transform 0.3s ease;
         z-index: 9999;
-        background: #f9f9f9;
-        border: 1px solid #f9f9f9;
+        background: #0ff;
+        border: 1px solid #0ff;
     }
 
     /* Show dropdown when open */

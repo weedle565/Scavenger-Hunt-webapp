@@ -2,7 +2,16 @@
 
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css" title="Base" />
+    <link rel="stylesheet" href="fantasy.css" title="Fantasy" rel="alternate stylesheet" />
+    <link rel="stylesheet" href="cyber.css" title="Cyberpunk" rel="alternate stylesheet" />
+    <link rel="stylesheet" href="trop.css" title="Tropical" rel="alternate stylesheet" />
+
+    <link rel="stylesheet" href="cosmic.css" title="Cosmic" rel="alternate stylesheet" />
+    <link rel="stylesheet" href="solar.css" title="Solar" rel="alternate stylesheet" />
+    <link rel="stylesheet" href="ocean.css" title="Ocean" rel="alternate stylesheet" />
+    <link rel="stylesheet" href="forest.css" title="Forest" rel="alternate stylesheet" />
+
     <title></title>
 
 </head>
@@ -11,10 +20,27 @@
 
 <h1>Scavenger Hunt</h1>
 
+<div id="themeSwitcher">
+    <button id="themeToggle" aria-label="Toggle theme selector">▶</button>
+    <select id="themeSelect" aria-label="Select theme">
+        <option value="Base">Base</option>
+        <option value="Fantasy">Fantasy</option>
+        <option value="Cyberpunk">Cyberpunk</option>
+        <option value="Tropical">Tropical</option>
+        <option value="Cosmic">Cosmic</option>
+
+        <option value="Solar">Solar</option>
+        <option value="Ocean">Ocean</option>
+        <option value="Forest">Forest</option>
+    </select>
+</div>
+
 <div id="teamFormDiv" class="hidden">
     <form id="teamForm">
         <label for="teamName">Enter Team Name:</label>
         <input type="text" id="teamName" name="teamName" required />
+        <label for="password">Enter Team Password:</label>
+        <input type="password" id="password" name="password" required/>
         <button type="submit">Join Game</button>
     </form>
 </div>

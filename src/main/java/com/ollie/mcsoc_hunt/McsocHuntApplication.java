@@ -1,10 +1,18 @@
 package com.ollie.mcsoc_hunt;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+/*
+TODO:
+- Documentation!
+- Authentication of critical endpoints
+- More robust tests
+- Real testing
+
+ */
 
 @SpringBootApplication(
         scanBasePackages = "com.ollie.mcsoc_hunt"

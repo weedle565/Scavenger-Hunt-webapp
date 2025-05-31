@@ -16,13 +16,15 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = false)
 public class Team {
 
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank(message = "Name must not be blank")
     private String name;
+
+    @NotBlank(message = "Password must not be blank")
+    private String password;
 
     @ElementCollection
     private List<String> completedTasks = new ArrayList<>();
@@ -33,9 +35,7 @@ public class Team {
     public void addLocation(String location) {
         revealedLocations.add(location);
     }
-    public void addTask(String location) {
-        completedTasks.add(location);
-    }
+
 
 
 }
