@@ -3,11 +3,11 @@ package com.ollie.mcsoc_hunt.services;
 import com.ollie.mcsoc_hunt.entities.Task;
 import com.ollie.mcsoc_hunt.entities.Team;
 import com.ollie.mcsoc_hunt.exceptions.TaskNotFoundException;
+import com.ollie.mcsoc_hunt.exceptions.TeamNotFoundException;
 import com.ollie.mcsoc_hunt.helpers.GuessResults;
+import com.ollie.mcsoc_hunt.helpers.JwtGenerator;
 import com.ollie.mcsoc_hunt.repositories.TaskRepo;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +35,26 @@ public class TaskService {
         this.teamService = teamService;
     }
 
-    public List<Task> getAllTasks(Long teamId) {
+    public List<Task> getAllTasks(String teamToken) {
+
+        System.out.println("Token: " + teamToken);
+        Long user = null;
+        Team selectedTeam = null;
+
+        try {
+            user = Long.parseLong(JwtGenerator.extractSubject(teamToken));
+
+            selectedTeam = teamService.getTeamById(user);
+        } catch (NumberFormatException ignore){}
+
+        System.out.println(user + " user");
+
+        if (selectedTeam == null) {
+            return taskRepo.findAll();
+        }
+
+        Long teamId = selectedTeam.getId();
+        System.out.println(teamId);
 
         List<Task> censoredTasks = new ArrayList<>();
         Team team = teamService.getTeamById(teamId);
@@ -51,7 +70,15 @@ public class TaskService {
         return taskRepo.save(task);
     }
 
-    public Task getTaskById(Long taskId, Long teamId) {
+    public Task getTaskById(Long taskId, String cookie) {
+
+        Team authTeam = teamService.getByCookie(cookie);
+        System.out.println(authTeam);
+
+        if (authTeam == null) throw new TeamNotFoundException("Team not found");
+
+        Long teamId = authTeam.getId();
+
         Task censoredTask = taskRepo.findById(taskId).orElseThrow(() -> new TaskNotFoundException("Could not find task: " + taskId));
 
         Team checkedTeam = teamService.getTeamById(teamId);
@@ -97,8 +124,14 @@ public class TaskService {
         taskRepo.deleteById(id);
     }
 
-    public GuessResults checkCorrectGuess(String guess, Long taskId, Long teamId) {
+    public GuessResults checkCorrectGuess(String guess, Long taskId, String token) {
         Task task = taskRepo.findById(taskId).orElseThrow(() -> new TaskNotFoundException("Could not find task: " + taskId));
+
+        Team authTeam = teamService.getByCookie(token);
+
+        if (authTeam == null) throw new TeamNotFoundException("Team not found");
+
+        Long teamId = authTeam.getId();
 
         Team team = teamService.getTeamById(teamId);
 
@@ -110,9 +143,16 @@ public class TaskService {
         return new GuessResults(false, "Incorrect!");
     }
 
-    public void startSubtask(Long taskId, Long teamId, String startTime, String endTime) {
+    public void startSubtask(Long taskId, String token, String startTime, String endTime) {
+
+        Team authTeam = teamService.getByCookie(token);
+
+        if (authTeam == null) throw new TeamNotFoundException("Team not found");
+
+        Long teamId = authTeam.getId();
 
         Team team = teamService.getTeamById(teamId);
+
         Task task = taskRepo.findById(taskId).orElseThrow(() -> new TaskNotFoundException("Task not found"));
 
         Task edittedTask = new Task();
@@ -131,5 +171,4 @@ public class TaskService {
         teamService.getTeamRepo().save(team);
 
     }
-
 }

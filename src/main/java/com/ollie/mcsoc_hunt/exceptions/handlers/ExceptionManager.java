@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 @RestControllerAdvice
@@ -44,7 +45,7 @@ public class ExceptionManager {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception e) {
-        Logger.getLogger("Exception Manager").warning(e.getMessage() + " " + e.getCause());
+        Logger.getLogger("Exception Manager").warning(e.getMessage() + " " + e.getCause() + " " + Arrays.toString(e.getStackTrace()));
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
     }
 

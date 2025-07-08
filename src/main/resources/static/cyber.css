@@ -25,6 +25,14 @@ input[type="text"] {
     border-radius: 8px;
 }
 
+input[type="password"] {
+    background: #111133;
+    border: 2px solid #0ff;
+    padding: 0.75rem;
+    color: #fff;
+    border-radius: 8px;
+}
+
 button {
     background: #ff00ff;
     color: #000;

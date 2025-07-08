@@ -4,7 +4,6 @@ import com.ollie.mcsoc_hunt.entities.Task;
 import com.ollie.mcsoc_hunt.helpers.GuessResults;
 import com.ollie.mcsoc_hunt.helpers.JwtGenerator;
 import com.ollie.mcsoc_hunt.services.TaskService;
-import io.jsonwebtoken.JwtParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,16 +25,22 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    @GetMapping("/team/{id}")
-    public List<Task> getAllTasks(@PathVariable Long id) {
+    @GetMapping("/all")
+    public ResponseEntity<List<Task>> getAllTasks(@RequestHeader("Authorization") String auth) {
+        System.out.println("Auth: " + auth);
+        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-        return taskService.getAllTasks(id);
+        List<Task> response = taskService.getAllTasks(auth);
+
+        if (response == null) return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
     public ResponseEntity<Task> createTask(@RequestBody Task task, @RequestHeader("Authorization") String auth) {
 
-        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (!JwtGenerator.checkAdminJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         URI location = null;
         Task createdTask = null;
@@ -57,9 +62,14 @@ public class TaskController {
 
     }
 
-    @GetMapping("/{taskId}/team/{teamId}")
-    public ResponseEntity<Task> getTaskById(@PathVariable Long taskId, @PathVariable Long teamId) {
-        Task task = taskService.getTaskById(taskId, teamId);
+    @GetMapping("/id/{taskId}")
+    public ResponseEntity<Task> getTaskById(@PathVariable Long taskId, @RequestHeader("Authorization") String auth) {
+
+        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        Task task = taskService.getTaskById(taskId, auth);
+
+        System.out.println(task);
 
         return ResponseEntity.ok(task);
     }
@@ -67,7 +77,7 @@ public class TaskController {
     @PutMapping("/{id}")
     public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task taskDetails, @RequestHeader("Authorization") String auth)  {
 
-        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (!JwtGenerator.checkAdminJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         Task updatedTask = taskService.updateTask(id, taskDetails);
 
@@ -77,15 +87,30 @@ public class TaskController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id, @RequestHeader("Authorization") String auth) {
 
-        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (!JwtGenerator.checkAdminJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{taskId}/team/{teamId}/{guess}")
-    public ResponseEntity<GuessResults> checkGuess(@PathVariable Long taskId, @PathVariable Long teamId, @PathVariable String guess) {
-        GuessResults results = taskService.checkCorrectGuess(guess, taskId, teamId);
+    @GetMapping("/id/{taskId}/{guess}")
+    public ResponseEntity<GuessResults> checkGuess(
+            @PathVariable Long taskId,
+            @PathVariable String guess,
+            @RequestHeader("Authorization") String authHeader) {
+
+        // Extract token from header
+        String token = authHeader != null && authHeader.startsWith("Bearer ")
+                ? authHeader.substring(7)
+                : authHeader;
+
+        // Validate the token
+        if (!JwtGenerator.checkJWT("Bearer " + token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        // Call the service with the extracted token
+        GuessResults results = taskService.checkCorrectGuess(guess, taskId, token);
 
         return ResponseEntity.ok(results);
     }
@@ -99,13 +124,15 @@ public class TaskController {
     @PostMapping("/{taskId}/subtask")
     public ResponseEntity<Void> startSubtask(
             @PathVariable("taskId") Long taskId,
-            @RequestParam("teamId") Long teamId,
             @RequestParam("startTime") String startTime,
-            @RequestParam("endTime") String endTime
+            @RequestParam("endTime") String endTime,
+            @RequestHeader("Authorization") String auth
     ) {
+        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-        taskService.startSubtask(taskId, teamId, startTime, endTime);
+        taskService.startSubtask(taskId, auth, startTime, endTime);
 
         return ResponseEntity.noContent().build();
     }
+
 }

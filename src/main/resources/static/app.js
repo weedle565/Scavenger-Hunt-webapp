@@ -5,36 +5,54 @@ const teamForm = document.getElementById('teamForm');
 const tasksDiv = document.getElementById('tasksDiv');
 const taskListDiv = document.getElementById('taskList');
 
-function setCookie(name, value, days = 7) {
-    const expires = new Date(Date.now() + days*24*60*60*1000).toUTCString();
-    document.cookie = `${name}=${value}; expires=${expires}; path=/`;
+function setCookie(name, value) {
+    document.cookie = `${name}=${value}; path=/`;
 }
 
-function getCookie(name) {
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    if (match) return match[2];
+// Get local cookies
+function getCookie() {
+    const match = document.cookie.match(new RegExp(/team=([^;]+)/));
+
+    if (match) return match[1];
     return null;
 }
 
+// Request to get cookie
+async function getCookieRequest(id) {
+    const resp = await fetch(`${API_BASE}/team/${id}/cookie`);
+    if (!resp.ok) throw new Error('Failed to generate cookie');
+    return resp.text()
+
+}
 async function createTeam(name, password) {
     const resp = await fetch(`${API_BASE}/team`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, password}),
     });
+
+    console.log(JSON.stringify(resp.headers));
     if (!resp.ok) throw new Error('Failed to create team');
     return resp.json();
 }
 
-async function fetchTasks(teamId) {
-    const resp = await fetch(`${API_BASE}/task/team/${teamId}`);
+async function fetchTasks() {
+    const resp = await fetch(`${API_BASE}/task/all`, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getCookie("team")}`
+        }
+    });
     if (!resp.ok) throw new Error('Failed to fetch tasks');
     return resp.json();
 }
-async function submitGuess(taskId, teamId, guess, form, locationSpan, riddleElement, description, task, taskDiv) {
-    const resp = await fetch(`${API_BASE}/task/${taskId}/team/${teamId}/${guess}`, {
+async function submitGuess(taskId, guess, form, locationSpan, riddleElement, description, task, taskDiv) {
+    const resp = await fetch(`${API_BASE}/task/id/${taskId}/${guess}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getCookie("team")}`
+        }
     });
     const result = await resp.json();
 
@@ -43,7 +61,21 @@ async function submitGuess(taskId, teamId, guess, form, locationSpan, riddleElem
         riddleElement.textContent = description;
         form.querySelector('input').disabled = true;
         form.querySelector('button').disabled = true;
-        form.classList.add('completed');
+        // form.classList.add('completed');
+
+        const taskResp = (await fetch(`${API_BASE}/task/id/${taskId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getCookie("team")}`
+            }
+        }));
+
+        const task = await taskResp.json();
+
+        console.log(task)
+
+        console.log("tasks")
 
         if (task.hasSubtask) {
             console.log(task.completed + " " + task.hasSubtask + " " + !task.subtaskComplete + " elif 1")
@@ -132,7 +164,7 @@ function showSubtask(riddleElement, task, taskDiv) {
     taskDiv.appendChild(completeForm);
 }
 
-function showTasks(tasks, teamId) {
+function showTasks(tasks) {
     taskListDiv.innerHTML = '';
     tasks.forEach(task => {
         const taskDiv = document.createElement('div');
@@ -166,7 +198,7 @@ function showTasks(tasks, teamId) {
                 e.preventDefault();
                 const guess = form.guess.value.trim();
                 if (!guess) return;
-                submitGuess(task.id, teamId, guess, form, locationSpan, content, task.description, task, taskDiv);
+                submitGuess(task.id, guess, form, locationSpan, content, task.description, task, taskDiv);
 
             });
             taskDiv.appendChild(form);
@@ -219,14 +251,13 @@ function showTasks(tasks, teamId) {
             taskDiv.appendChild(startForm);
 
         }
-        console.log(task.completed + " " + task.hasSubtask + " " + task.subtaskComplete + JSON.stringify(task) +  " out 1")
 
         taskListDiv.appendChild(taskDiv);
     });
 }
 
 async function submitCompletion(taskId, taskCard) {
-    const teamId = getCookie('teamId');
+    const teamId = getCookie('team');
     if (!teamId) return;
 
     console.log("animation")
@@ -261,12 +292,12 @@ adminToggle.addEventListener('click', () => {
 });
 
 // API calls
-async function fetchAllTasks(teamId) {
+async function fetchAllTasks() {
     const token = localStorage.getItem('adminToken');
     if (!token) {
         return;
     }
-    const resp = await fetch(`${API_BASE}/task/team/${teamId}`, {
+    const resp = await fetch(`${API_BASE}/task/all`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -279,7 +310,7 @@ async function fetchAllTeams() {
     if (!token) {
         return;
     }
-    const resp = await fetch(`${API_BASE}/team`, {
+    const resp = await fetch(`${API_BASE}/team/all`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -302,13 +333,13 @@ async function deleteTask(id) {
     await loadAdminPanel();
 }
 
-async function deleteTeam(id) {
+async function deleteTeam() {
     const token = localStorage.getItem('adminToken');
     if (!token) {
         return;
     }
     if (!confirm("Are you sure you want to delete this team?")) return;
-    await fetch(`${API_BASE}/team/${id}`, {
+    await fetch(`${API_BASE}`, {
         method: 'DELETE',
         headers: {
             'Authorization': `Bearer ${token}`
@@ -335,7 +366,7 @@ async function createTaskFromAdmin(data) {
 
 // Load admin panel content
 async function loadAdminPanel() {
-    const tasks = await fetchAllTasks(getCookie("teamId"));
+    const tasks = await fetchAllTasks();
     const teams = await fetchAllTeams();
 
     const adminTasksList = document.getElementById('adminTaskList');
@@ -468,8 +499,9 @@ toggleBtn.addEventListener('click', () => {
 
 // On page load check for teamId cookie or show form
 async function init() {
-    let teamId = getCookie('teamId');
+    let teamId = getCookie('team');
 
+    console.log(teamId)
     if (!teamId) {
         teamFormDiv.style.display = 'block';
         tasksDiv.style.display = 'none';
@@ -483,12 +515,15 @@ async function init() {
 
             try {
                 const team = await createTeam(name, pass);
-                setCookie('teamId', team.id);
+                console.log("Team good")
+                const cookie = (await getCookieRequest(team.id))
+
+                setCookie('team', cookie);
                 teamId = team.id;
                 teamFormDiv.style.display = 'none';
                 tasksDiv.style.display = 'block';
 
-                const tasks = await fetchTasks(teamId);
+                const tasks = await fetchTasks(cookie);
                 showTasks(tasks, teamId);
             } catch (err) {
                 alert('Failed to create team: ' + err.message);
@@ -504,7 +539,7 @@ async function init() {
             showTasks(tasks, teamId);
         } catch {
             // Invalid teamId in cookie: reset and show form
-            setCookie('teamId', '', -1);
+            setCookie('team', '', -1);
             teamFormDiv.style.display = 'block';
             tasksDiv.style.display = 'none';
         }

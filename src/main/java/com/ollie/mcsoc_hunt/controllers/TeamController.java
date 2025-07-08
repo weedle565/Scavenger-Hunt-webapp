@@ -1,7 +1,7 @@
 package com.ollie.mcsoc_hunt.controllers;
 
 import com.ollie.mcsoc_hunt.entities.Team;
-import com.ollie.mcsoc_hunt.helpers.GuessResults;
+import com.ollie.mcsoc_hunt.exceptions.TeamNotFoundException;
 import com.ollie.mcsoc_hunt.helpers.JwtGenerator;
 import com.ollie.mcsoc_hunt.services.TeamService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,8 +23,10 @@ public class TeamController {
         this.teamService = teamService;
     }
 
-    @GetMapping
-    public ResponseEntity<List<Team>> getAllTeams() {
+    @GetMapping("/all")
+    public ResponseEntity<List<Team>> getAllTeams(@RequestHeader("Authorization") String auth) {
+        if (!JwtGenerator.checkAdminJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
         List<Team> teams = teamService.getAllTeams();
 
         return ResponseEntity.ok(teams);
@@ -33,6 +35,8 @@ public class TeamController {
     @PostMapping
     public ResponseEntity<Team> createTeam(@RequestBody Team team) {
         Team createdTeam = teamService.createTeam(team);
+        if (createdTeam == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(createdTeam.getId())
@@ -41,36 +45,46 @@ public class TeamController {
         return ResponseEntity.created(location).body(createdTeam);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Team> getTeamById(@PathVariable Long id) {
-        Team team = teamService.getTeamById(id);
+    @GetMapping("/{name}/cookie")
+    public ResponseEntity<String> generateCooke(@PathVariable String name) {
+        String cookie = JwtGenerator.generateToken(name);
+//        System.out.println(cookie);
+        return ResponseEntity.ok(cookie);
+    }
+
+    @GetMapping
+    public ResponseEntity<Team> getTeamById(@RequestHeader("Authorization") String auth) {
+        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        Team team = teamService.getTeamByCookie(auth);
+
+        System.out.println(team);
+        if (team == null) throw new TeamNotFoundException("Team not found");
 
         return ResponseEntity.ok(team);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Team> updateTeam(@PathVariable Long id, @RequestBody Team teamDetails, @RequestHeader("Authorization") String auth) {
+    @PutMapping("")
+    public ResponseEntity<Team> updateTeam(@RequestBody Team teamDetails, @RequestHeader("Authorization") String auth) {
 
-        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (!JwtGenerator.checkAdminJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-        Team updatedTeam = teamService.updateTeam(id, teamDetails);
+        Team updatedTeam = teamService.updateTeam(auth, teamDetails);
 
         return ResponseEntity.ok(updatedTeam);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTeam(@PathVariable Long id, @RequestHeader("Authorization") String auth) {
-        if (!JwtGenerator.checkJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    @DeleteMapping
+    public ResponseEntity<Void> deleteTeam(@RequestHeader("Authorization") String auth) {
+        if (!JwtGenerator.checkAdminJWT(auth)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-        teamService.deleteTeam(id);
+        System.out.println("In controller");
+
+        teamService.deleteTeam(auth);
+
+        System.out.println("Deleted team");
+
         return ResponseEntity.noContent().build();
     }
-
-//    @PostMapping("/{id}/guess/{location}")
-//    public ResponseEntity<GuessResults> checkGuess(@PathVariable Long id, @PathVariable String location) {
-//
-//        GuessResults result = teamService.checkGuess(id, location);
-//        return ResponseEntity.ok(result);
-//    }
 
 }

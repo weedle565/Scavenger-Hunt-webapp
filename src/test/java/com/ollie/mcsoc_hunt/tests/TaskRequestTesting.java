@@ -5,13 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ollie.mcsoc_hunt.entities.Task;
 import com.ollie.mcsoc_hunt.entities.Team;
 import com.ollie.mcsoc_hunt.exceptions.TaskNotFoundException;
-import com.ollie.mcsoc_hunt.exceptions.TeamNotFoundException;
 import com.ollie.mcsoc_hunt.helpers.GuessResults;
 import com.ollie.mcsoc_hunt.services.TaskService;
-import com.ollie.mcsoc_hunt.services.TeamService;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -20,14 +19,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -50,7 +48,7 @@ public class TaskRequestTesting {
     void setupTeam() {
         task = new Task();
         task.setId(1L);
-        task.setName("test task");
+        task.setName("test team");
         task.setDescription("Test task");
         task.setCompleted(false);
         task.setRiddle("Test riddle");
@@ -67,30 +65,13 @@ public class TaskRequestTesting {
 
         when(taskService.createTask(Mockito.any(Task.class))).thenReturn(task);
 
-        mockMvc.perform(post("/api/task").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(taskToCreate))).
+        mockMvc.perform(post("/api/task").
+                header("Authorization", "Bearer " + generateAdminTestJWT()).
+                contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(taskToCreate))).
                 andExpect(status().isCreated()).
                 andExpect(jsonPath("$.id").value(1L)).
-                andExpect(jsonPath("$.name").value("test task"));
+                andExpect(jsonPath("$.name").value("test team"));
 
-    }
-
-    @Test
-    void getTasksTest() throws Exception {
-
-        List<Task> tasks = List.of(task);
-
-        Team team = new Team();
-        team.setId(1L);
-        team.setName("test team");
-        team.setRevealedLocations(new ArrayList<>());
-
-        when(taskService.getAllTasks(team.getId())).thenReturn(tasks);
-
-        mockMvc.perform(get("/api/task/team/1")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].name").value("test task"));
     }
 
     @Test
@@ -103,13 +84,17 @@ public class TaskRequestTesting {
         list.add("Test location");
         team.setRevealedLocations(list);
 
-        when(taskService.getTaskById(Mockito.eq(1L), Mockito.eq(1L))).thenReturn(task);
+        String jwt = generateFakeTestJWT();
+        String bearerJwt = "Bearer " + jwt;
 
-        mockMvc.perform(get("/api/task/1/team/1")
-                        .contentType(MediaType.APPLICATION_JSON))
+        when(taskService.getTaskById(Mockito.eq(1L), Mockito.eq(bearerJwt))).thenReturn(task);
+
+        mockMvc.perform(get("/api/task/id/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + jwt))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("test task"))
+                .andExpect(jsonPath("$.name").value("test team"))
                 .andExpect(jsonPath("$.location").value("Test location"));
 
     }
@@ -138,12 +123,16 @@ public class TaskRequestTesting {
         censoredTask.setRiddle(task.getRiddle());
         censoredTask.setLocation("Hidden");
 
-        when(taskService.getTaskById(1L, 1L)).thenReturn(censoredTask);
+        String jwt = generateFakeTestJWT();
+        String bearerJwt = "Bearer " + jwt;
 
-        mockMvc.perform(get("/api/task/1/team/1")
-                        .contentType(MediaType.APPLICATION_JSON))
+        when(taskService.getTaskById(Mockito.eq(1L), Mockito.eq(bearerJwt))).thenReturn(task);
+
+        mockMvc.perform(get("/api/task/id/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerJwt))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.location").value("Hidden"));
+                .andExpect(jsonPath("$.location").value("Secret Location"));
     }
 
     @Test
@@ -170,12 +159,16 @@ public class TaskRequestTesting {
         censoredTask.setRiddle(task.getRiddle());
         censoredTask.setLocation("Hidden");
 
-        when(taskService.getTaskById(1L, 1L)).thenReturn(censoredTask);
+        String jwt = generateFakeTestJWT();
+        String bearerJwt = "Bearer " + jwt;
 
-        mockMvc.perform(get("/api/task/1/team/1")
-                        .contentType(MediaType.APPLICATION_JSON))
+        when(taskService.getTaskById(Mockito.eq(1L), Mockito.eq(bearerJwt))).thenReturn(task);
+
+        mockMvc.perform(get("/api/task/id/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + generateFakeTestJWT()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.location").value("Hidden"));
+                .andExpect(jsonPath("$.location").value("Secret Location"));
 
     }
 
@@ -188,11 +181,17 @@ public class TaskRequestTesting {
         team.setName("test team");
         team.setRevealedLocations(new ArrayList<>());
 
-        // Mock the service to throw exception on delete
-        Mockito.doThrow(new TaskNotFoundException("Task not found")).when(taskService).getTaskById(taskId, team.getId());
+        String jwt = generateFakeTestJWT();
+        String bearerJwt = "Bearer " + jwt;
 
-        mockMvc.perform(get("/api/task/{id}/team/1", taskId)
-                        .contentType(MediaType.APPLICATION_JSON)).
+        // Mock the service to throw exception on delete
+        Mockito.doThrow(new TaskNotFoundException("Task not found"))
+                .when(taskService)
+                .getTaskById(taskId, bearerJwt);
+
+        mockMvc.perform(get("/api/task/id/{id}", taskId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerJwt)).
                 andExpect(status().isNotFound()).
                 andExpect(jsonPath("$.message").value("Task not found"));
     }
@@ -200,9 +199,8 @@ public class TaskRequestTesting {
     @Test
     void getTaskInternalServerError() throws Exception {
         Long taskId = 4L;
-        Long teamId = 32L;
 
-        Mockito.doThrow(new RuntimeException("Database error")).when(taskService).getTaskById(taskId, teamId);
+        Mockito.doThrow(new RuntimeException("Database error")).when(taskService).getTaskById(taskId, generateFakeTestJWT());
 
         mockMvc.perform(get("/api/task/{id}", taskId)
                         .contentType(MediaType.APPLICATION_JSON))
@@ -216,7 +214,7 @@ public class TaskRequestTesting {
         team.setName("test team");
         team.setRevealedLocations(new ArrayList<>());
 
-        mockMvc.perform(get("/api/task/{id}/team/1", "abc")
+        mockMvc.perform(get("/api/task/id/{id}", "abc")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }
@@ -228,7 +226,8 @@ public class TaskRequestTesting {
         Mockito.doNothing().when(taskService).deleteTask(taskId);
 
         mockMvc.perform(delete("/api/task/{id}", taskId)
-                        .contentType(MediaType.APPLICATION_JSON))
+                .header("Authorization", "Bearer " + generateAdminTestJWT())
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
     }
 
@@ -240,6 +239,7 @@ public class TaskRequestTesting {
         Mockito.doThrow(new TaskNotFoundException("Task not found")).when(taskService).deleteTask(taskId);
 
         mockMvc.perform(delete("/api/task/{id}", taskId)
+                        .header("Authorization", "Bearer " + generateAdminTestJWT())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound()).
                 andExpect(jsonPath("$.message").value("Task not found"));
@@ -265,56 +265,144 @@ public class TaskRequestTesting {
 
     @Test
     void testCorrectGuess() throws Exception {
+        // Arrange
+        String jwt = generateFakeTestJWT();  // generate JWT once and reuse
+        String bearerJwt = "Bearer " + jwt;
 
         Team team = new Team();
         team.setId(1L);
         team.setName("Team A");
         team.setRevealedLocations(new ArrayList<>());
 
-        String guess = "test";
+        String guess = "Test location";
 
         GuessResults checkResults = new GuessResults();
+        checkResults.setCorrect(true);
 
-        when(taskService.checkCorrectGuess(guess, 1L, 1L)).thenReturn(checkResults);
+        // Use eq() matcher to strictly match arguments including the stripped token
+        when(taskService.checkCorrectGuess(Mockito.eq(guess), Mockito.eq(1L), Mockito.eq(jwt))).thenReturn(checkResults);
 
-        mockMvc.perform(get("/api/task/1/team/1/guess/{guess}", guess)
-                        .contentType(MediaType.APPLICATION_JSON))
+        // Act & Assert
+        mockMvc.perform(get("/api/task/id/1/{guess}", guess)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerJwt))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.location").value("Hidden"));
+                .andExpect(jsonPath("$.correct").value(true));
     }
-//
-//    @Test
-//    void testIncorrectGuess() {
-//        Long taskId = 1L;
-//        Long teamId = 10L;
-//        String guess = "mouse";
-//
-//        Task task = new Task();
-//        task.setId(taskId);
-//        task.setLocation("keyboard");
-//
-//        Team team = new Team();
-//        team.setId(teamId);
-//
-//        when(taskRepo.findById(taskId)).thenReturn(Optional.of(task));
-//        when(teamService.getTeamById(teamId)).thenReturn(team);
-//
-//        GuessResults result = taskService.checkCorrectGuess(guess, taskId, teamId);
-//
-//        assertFalse(result.correct());
-//        assertEquals("Incorrect!", result.message());
-//        verify(teamService, never()).addGuess(anyString(), any());
-//    }
-//
-//    @Test
-//    void testTaskNotFound() {
-//        Long taskId = 99L;
-//        Long teamId = 10L;
-//
-//        when(taskRepo.findById(taskId)).thenReturn(Optional.empty());
-//
-//        assertThrows(TaskNotFoundException.class, () ->
-//                taskService.checkCorrectGuess("keyboard", taskId, teamId));
-//    }
+
+    @Test
+    void getAllTasksTest() throws Exception {
+        List<Task> tasks = List.of(task);
+        when(taskService.getAllTasks(Mockito.anyString())).thenReturn(tasks);
+
+        mockMvc.perform(get("/api/task/all")
+                        .header("Authorization", "Bearer " + generateFakeTestJWT()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].name").value("test team"));
+    }
+
+    @Test
+    void getAllTasksUnauthorizedTest() throws Exception {
+        mockMvc.perform(get("/api/task/all").header("Authorization", "Bearer loll"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void updateTaskTest() throws Exception {
+        Task updated = new Task();
+        updated.setId(1L);
+        updated.setName("Updated task");
+
+        when(taskService.updateTask(Mockito.eq(1L), Mockito.any(Task.class))).thenReturn(updated);
+
+        mockMvc.perform(put("/api/task/1")
+                        .header("Authorization", "Bearer " + generateAdminTestJWT())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(task)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Updated task"));
+    }
+
+    @Test
+    void updateTaskUnauthorizedTest() throws Exception {
+        mockMvc.perform(put("/api/task/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer loll")
+                        .content(objectMapper.writeValueAsString(task))
+                )
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void startSubtaskTest() throws Exception {
+        Mockito.doNothing().when(taskService).startSubtask(Mockito.eq(1L), Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+
+        mockMvc.perform(post("/api/task/1/subtask")
+                        .param("startTime", "10:00")
+                        .param("endTime", "11:00")
+                        .header("Authorization", "Bearer " + generateFakeTestJWT()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void startSubtaskUnauthorizedTest() throws Exception {
+        mockMvc.perform(post("/api/task/1/subtask")
+                        .param("startTime", "10:00")
+                        .param("endTime", "11:00")
+                        .header("Authorization", "Bearer loll"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void testCorrectGuessUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/task/id/1/Test location")
+                        .header("Authorization", "Bearer lol" ))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void createTaskUnauthorizedTest() throws Exception {
+        Task taskToCreate = new Task();
+        taskToCreate.setName("Unauthorized");
+
+        mockMvc.perform(post("/api/task")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer lol" )
+                        .content(objectMapper.writeValueAsString(taskToCreate)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void updateTaskNotFoundTest() throws Exception {
+        Mockito.doThrow(new TaskNotFoundException("Task not found"))
+                .when(taskService)
+                .updateTask(Mockito.eq(999L), Mockito.any(Task.class));
+
+        mockMvc.perform(put("/api/task/999")
+                        .header("Authorization", "Bearer " + generateAdminTestJWT())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(task)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Task not found"));
+    }
+
+    private String generateAdminTestJWT() {
+        long expirationMs = 86400000;
+        return Jwts.builder()
+                .setSubject("test team")
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMs)).signWith(SignatureAlgorithm.HS256, com.ollie.mcsoc_hunt.helpers.JwtGenerator.getAdminSecret().getBytes(StandardCharsets.UTF_8)).compact();
+    }
+
+    private String generateFakeTestJWT() {
+        long expirationMs = 86400000;
+        return Jwts.builder()
+                .setSubject("notreal")
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMs)).signWith(SignatureAlgorithm.HS256, com.ollie.mcsoc_hunt.helpers.JwtGenerator.getSecret().getBytes(StandardCharsets.UTF_8)).compact();
+    }
+
 
 }
