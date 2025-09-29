@@ -5,6 +5,37 @@ const teamForm = document.getElementById('teamForm');
 const tasksDiv = document.getElementById('tasksDiv');
 const taskListDiv = document.getElementById('taskList');
 
+let score = 0;
+
+function updateScore() {
+    document.getElementById("score-value").textContent = score;
+}
+
+function setTheme(themeName) {
+    if (themeName.toLowerCase() === 'base') {
+        document.body.className = ''; // remove all theme classes
+    } else {
+        document.body.className = `theme-${themeName.toLowerCase()}`;
+    }
+    localStorage.setItem("theme", themeName);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const themeSelect = document.getElementById('themeSelect'); // now it's defined
+
+    // Restore saved theme
+    const saved = localStorage.getItem("theme") || 'base';
+    setTheme(saved);
+    themeSelect.value = saved;
+
+    // Add change listener
+    themeSelect.addEventListener('change', function () {
+        setTheme(this.value); // no need to lowerCase here; already handled in setTheme
+    });
+
+    // Init score
+    updateScore();
+});
 function setCookie(name, value) {
     document.cookie = `${name}=${value}; path=/`;
 }
@@ -31,7 +62,6 @@ async function createTeam(name, password) {
         body: JSON.stringify({ name, password}),
     });
 
-    console.log(JSON.stringify(resp.headers));
     if (!resp.ok) throw new Error('Failed to create team');
     return resp.json();
 }
@@ -46,126 +76,11 @@ async function fetchTasks() {
     if (!resp.ok) throw new Error('Failed to fetch tasks');
     return resp.json();
 }
-async function submitGuess(taskId, guess, form, locationSpan, riddleElement, description, task, taskDiv) {
-    const resp = await fetch(`${API_BASE}/task/id/${taskId}/${guess}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getCookie("team")}`
-        }
-    });
-    const result = await resp.json();
 
-    if (result.correct) {
-        locationSpan.textContent = guess;
-        riddleElement.textContent = description;
-        form.querySelector('input').disabled = true;
-        form.querySelector('button').disabled = true;
-        // form.classList.add('completed');
-
-        const taskResp = (await fetch(`${API_BASE}/task/id/${taskId}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getCookie("team")}`
-            }
-        }));
-
-        const task = await taskResp.json();
-
-        console.log(task)
-
-        console.log("tasks")
-
-        if (task.hasSubtask) {
-            console.log(task.completed + " " + task.hasSubtask + " " + !task.subtaskComplete + " elif 1")
-
-            const startForm = document.createElement('form');
-            const startButton = document.createElement('button');
-            startButton.type = 'submit';
-            startButton.textContent = 'Start';
-            startForm.appendChild(startButton);
-
-            const currentTask = task;
-
-            console.log(currentTask);
-
-            startForm.addEventListener('submit', e => {
-                e.preventDefault();
-                const completeForm = document.createElement('form');
-                const completeButton = document.createElement('button');
-                completeButton.type = 'submit';
-                completeButton.textContent = 'Start';
-                completeForm.appendChild(completeButton);
-
-                completeForm.addEventListener('submit', ce => {
-                    ce.preventDefault();
-                    if (confirm("Start subtask?")) {
-                        completeButton.remove();
-                        startButton.remove();
-                        showSubtask(riddleElement, currentTask, taskDiv);
-                    }
-                });
-
-                taskDiv.replaceChild(completeForm, startForm);
-            });
-
-            taskDiv.appendChild(startForm);
-
-        } else {
-            // No subtask, immediately show complete button
-            const completeForm = document.createElement('form');
-            const completeButton = document.createElement('button');
-            completeButton.type = 'submit';
-            completeButton.textContent = 'Complete';
-            completeForm.appendChild(completeButton);
-
-            completeForm.addEventListener('submit', e => {
-                e.preventDefault();
-                if (confirm("Mark this challenge as completed?")) {
-
-                    submitCompletion(task.id, taskDiv);
-                }
-            });
-
-            taskDiv.appendChild(completeForm);
-        }
-
-    } else {
-        const input = form.querySelector('input[name="guess"]');
-        input.classList.add('shake');
-        input.addEventListener('animationend', () => {
-            input.classList.remove('shake');
-        }, { once: true });
-    }
-
-    form.reset();
-}
-
-function showSubtask(riddleElement, task, taskDiv) {
-
-    console.log("Show subtask: " + task)
-
-    riddleElement.textContent = task.subtaskDescription;
-    // No subtask, immediately show complete button
-    const completeForm = document.createElement('form');
-    const completeButton = document.createElement('button');
-    completeButton.type = 'submit';
-    completeButton.textContent = 'Complete';
-    completeForm.appendChild(completeButton);
-
-    completeForm.addEventListener('submit', e => {
-        e.preventDefault();
-        if (confirm("Mark this challenge as completed?")) {
-            submitCompletion(task.id, taskDiv);
-        }
-    });
-
-    taskDiv.appendChild(completeForm);
-}
 
 function showTasks(tasks) {
     taskListDiv.innerHTML = '';
+
     tasks.forEach(task => {
         const taskDiv = document.createElement('div');
         taskDiv.className = 'task';
@@ -174,93 +89,104 @@ function showTasks(tasks) {
         title.textContent = task.name;
 
         const content = document.createElement('p');
-        content.textContent = task.location !== "Hidden" ? task.description : task.riddle;
+        content.textContent = '';
+        content.style.display = 'none';
 
         const locationSpan = document.createElement('span');
         locationSpan.textContent = task.location === "Hidden" ? "Hidden" : task.location;
 
         taskDiv.appendChild(title);
-        taskDiv.appendChild(document.createTextNode(task.location !== "Hidden" ? 'Challenge: ' : 'Riddle: '));
         taskDiv.appendChild(content);
         taskDiv.appendChild(document.createTextNode('Location: '));
         taskDiv.appendChild(locationSpan);
         taskDiv.appendChild(document.createElement('br'));
 
-        if (!task.completed && task.location === "Hidden") {
+        // Buttons
+        const easyBtn = document.createElement('button');
+        easyBtn.textContent = 'Easy Challenge';
+        easyBtn.className = 'outline-btn easy-btn';
 
-            console.log(!task.completed + " " + task.location + " first if")
-            const form = document.createElement('form');
-            form.innerHTML = `
-                <input type="text" name="guess" placeholder="Your guess" required />
-                <button type="submit">Guess</button>
-            `;
-            form.addEventListener('submit', e => {
-                e.preventDefault();
-                const guess = form.guess.value.trim();
-                if (!guess) return;
-                submitGuess(task.id, guess, form, locationSpan, content, task.description, task, taskDiv);
+        const hardBtn = document.createElement('button');
+        hardBtn.textContent = 'Hard Challenge';
+        hardBtn.className = 'outline-btn hard-btn';
 
-            });
-            taskDiv.appendChild(form);
+        const completeBtn = document.createElement('button');
+        completeBtn.textContent = 'Complete';
+        completeBtn.className = 'outline-btn complete-btn';
+        completeBtn.style.display = 'none'; // hidden initially
 
-        } else if (task.completed && (!task.hasSubtask || task.subtaskComplete)) {
-            console.log(task.completed + " " + !task.hasSubtask + " " + task.subtaskComplete + " elif 2")
+        // Button wrapper
+        const buttonWrapper = document.createElement('div');
+        buttonWrapper.className = 'button-wrapper';
+        buttonWrapper.appendChild(easyBtn);
+        buttonWrapper.appendChild(hardBtn);
+        buttonWrapper.appendChild(completeBtn);
+        taskDiv.appendChild(buttonWrapper);
 
-            const completeForm = document.createElement('form');
-            completeForm.innerHTML = `<button type="submit">Complete</button>`;
-            completeForm.addEventListener('submit', e => {
-                e.preventDefault();
-                if (confirm("Mark this challenge as completed?")) {
-                    submitCompletion(task.id, taskDiv);
-                }
-            });
-            taskDiv.appendChild(completeForm);
-        } else if (task.completed && task.hasSubtask && !task.subtaskComplete) {
+        // Track difficulty selected
+        let selectedDifficulty = null;
 
-            const startForm = document.createElement('form');
-            const startButton = document.createElement('button');
-            startButton.type = 'submit';
-            startButton.textContent = 'Start';
-            startForm.appendChild(startButton);
+        function startChallenge(difficulty) {
+            content.style.display = 'block';
+            content.textContent = task.description;
+            easyBtn.remove();
+            hardBtn.remove();
+            completeBtn.style.display = 'inline-block';
+            selectedDifficulty = difficulty;
+        }
 
-            const currentTask = task;
-            console.log(currentTask + " task")
+        easyBtn.addEventListener('click', () => startChallenge('e'));
+        hardBtn.addEventListener('click', () => startChallenge('h'));
 
-            startForm.addEventListener('submit', e => {
-                e.preventDefault();
-                // Replace with "Complete" button
-                const completeForm = document.createElement('form');
-                const completeButton = document.createElement('button');
-                completeButton.type = 'submit';
-                completeButton.textContent = 'Start';
-                completeForm.appendChild(completeButton);
+        completeBtn.addEventListener('click', async () => {
+            if (!selectedDifficulty) return;
 
-                completeForm.addEventListener('submit', ce => {
-                    ce.preventDefault();
-                    if (confirm("Start subtask?")) {
-                        showSubtask(content, currentTask, taskDiv);
+            try {
+                // Map difficulty to backend path
+                const taskType = selectedDifficulty === 'hard' ? 'h' : 'e';
+                const url = `${API_BASE}/team/complete/${task.id}/${taskType}`;
+                const token = getCookie("team");
 
-                        completeButton.remove();
-                        startButton.remove();
+                console.log("Completing task:");
+                console.log("URL:", url);
+                console.log("Token:", token);
+
+                const resp = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     }
                 });
 
-                taskDiv.replaceChild(completeForm, startForm);
-            });
+                console.log("Fetch response status:", resp.status);
 
-            taskDiv.appendChild(startForm);
+                if (!resp.ok) {
+                    const text = await resp.text(); // log the server response
+                    console.error("Server response:", text);
+                    throw new Error(`Failed to complete task: ${resp.status}`);
+                }
 
-        }
+                // this is the total points after completion
+                score = await resp.json();
+                updateScore();
+
+                // Animate task removal
+                taskDiv.classList.add('slide-out-right');
+                taskDiv.addEventListener('animationend', () => taskDiv.remove(), { once: true });
+
+            } catch (err) {
+                alert('Failed to complete task: ' + err.message);
+            }
+        });
 
         taskListDiv.appendChild(taskDiv);
     });
 }
 
-async function submitCompletion(taskId, taskCard) {
+async function submitCompletion(taskId, taskCard, taskDifficulty) {
     const teamId = getCookie('team');
     if (!teamId) return;
-
-    console.log("animation")
 
     taskCard.classList.add('slide-out-right');
     taskCard.addEventListener('animationend', () => {
@@ -302,6 +228,7 @@ async function fetchAllTasks() {
             'Authorization': `Bearer ${token}`
         }
     });
+
     return await resp.json();
 }
 
@@ -365,79 +292,78 @@ async function createTaskFromAdmin(data) {
 }
 
 // Load admin panel content
-async function loadAdminPanel() {
-    const tasks = await fetchAllTasks();
-    const teams = await fetchAllTeams();
-
-    const adminTasksList = document.getElementById('adminTaskList');
-    adminTasksList.innerHTML = '';
-
-    const adminTasksDiv = document.getElementById('adminTaskDiv');
-    // TASKS
-    const taskTitle = document.createElement('h2');
-    taskTitle.textContent = 'Tasks';
-    adminTasksDiv.appendChild(taskTitle);
-
-    tasks.forEach(task => {
-        const div = document.createElement('div');
-        div.className = 'task';
-
-        // Create and append title
-        const title = document.createElement('h3');
-        title.textContent = task.name;
-        div.appendChild(title);
-
-        // Create and append riddle paragraph
-        const riddle = document.createElement('p');
-        riddle.textContent = task.riddle;
-        div.appendChild(riddle);
-
-        // Create and append location span
-        const location = document.createElement('span');
-        location.textContent = task.location;
-        div.appendChild(location);
-
-        div.appendChild(document.createElement('br'));
-
-        // Create and append delete button
-        const btn = document.createElement('button');
-        btn.textContent = 'Delete';
-        btn.addEventListener('click', () => deleteTask(task.id));
-        div.appendChild(btn);
-
-        adminTasksDiv.appendChild(div);
-    });
-
-    // TEAMS
-    const teamTitle = document.createElement('h2');
-    teamTitle.textContent = 'Teams';
-    adminTasksDiv.appendChild(teamTitle);
-
-    teams.forEach(team => {
-        const div = document.createElement('div');
-        div.className = 'task';
-
-        const strong = document.createElement('strong');
-        strong.textContent = team.name;
-
-        const idText = document.createElement('div');
-        idText.textContent = `(ID: ${team.id})`;
-
-        const btn = document.createElement('button');
-        btn.textContent = 'Delete';
-        btn.addEventListener('click', () => deleteTeam(team.id));
-
-        div.appendChild(strong);
-        div.appendChild(document.createElement('br'));
-        div.appendChild(idText);
-        div.appendChild(document.createElement('br'));
-        div.appendChild(btn);
-
-        adminTasksDiv.appendChild(div);
-    });
-
-    adminTasksDiv.style.display = 'block';
-}
+// async function loadAdminPanel() {
+//     const tasks = await fetchAllTasks();
+//     const teams = await fetchAllTeams();
+//
+//     const adminTasksList = document.getElementById('adminTaskList');
+//     adminTasksList.innerHTML = '';
+//
+//     const adminTasksDiv = document.getElementById('adminTaskDiv');
+//     // TASKS
+//     const taskTitle = document.createElement('h2');
+//     taskTitle.textContent = 'Tasks';
+//     adminTasksDiv.appendChild(taskTitle);
+//
+//     tasks.forEach(task => {
+//         const div = document.createElement('div');
+//         div.className = 'task';
+//
+//         // Create and append title
+//         const title = document.createElement('h3');
+//         title.textContent = task.name;
+//         div.appendChild(title);
+//
+//         // Create and append riddle paragraph
+//         const riddle = document.createElement('p');
+//         riddle.textContent = task.riddle;
+//         div.appendChild(riddle);
+//
+//         // Create and append location span
+//         const location = document.createElement('span');
+//         location.textContent = task.location;
+//         div.appendChild(location);
+//
+//         div.appendChild(document.createElement('br'));
+//
+//         // Create and append delete button
+//         const btn = document.createElement('button');
+//         btn.textContent = 'Delete';
+//         btn.addEventListener('click', () => deleteTask(task.id));
+//         div.appendChild(btn);
+//
+//         adminTasksDiv.appendChild(div);
+//     });
+//
+//     // TEAMS
+//     const teamTitle = document.createElement('h2');
+//     teamTitle.textContent = 'Teams';
+//     adminTasksDiv.appendChild(teamTitle);
+//
+//     teams.forEach(team => {
+//         const div = document.createElement('div');
+//         div.className = 'task';
+//
+//         const strong = document.createElement('strong');
+//         strong.textContent = team.name;
+//
+//         const idText = document.createElement('div');
+//         idText.textContent = `(ID: ${team.id})`;
+//
+//         const btn = document.createElement('button');
+//         btn.textContent = 'Delete';
+//         btn.addEventListener('click', () => deleteTeam(team.id));
+//
+//         div.appendChild(strong);
+//         div.appendChild(document.createElement('br'));
+//         div.appendChild(idText);
+//         div.appendChild(document.createElement('br'));
+//         div.appendChild(btn);
+//
+//         adminTasksDiv.appendChild(div);
+//     });
+//
+// }
 
 document.getElementById('hasSubtask').addEventListener('change', (e) => {
     document.getElementById('subtaskFields').style.display = e.target.checked ? 'block' : 'none';
@@ -463,31 +389,9 @@ document.getElementById('adminTaskForm').addEventListener('submit', async (e) =>
 
     }
 
-    console.log(JSON.stringify(data))
-
     await createTaskFromAdmin(data);
     form.reset();
     document.getElementById('subtaskFields').style.display = 'none';  // Hide again after submit
-});
-
-function setActiveStyleSheet(title) {
-    const links = document.querySelectorAll('link[rel~="stylesheet"], link[rel="alternate stylesheet"]');
-    links.forEach(link => {
-
-        link.disabled = link.title !== title;
-    });
-    localStorage.setItem('selectedTheme', title);
-}
-
-// On load, set theme and listen for changes
-window.addEventListener('DOMContentLoaded', () => {
-    const savedTheme = localStorage.getItem('selectedTheme') || 'Base';
-    setActiveStyleSheet(savedTheme);
-    document.getElementById('themeSelect').value = savedTheme;
-
-    document.getElementById('themeSelect').addEventListener('change', function () {
-        setActiveStyleSheet(this.value);
-    });
 });
 
 const themeSwitcher = document.getElementById('themeSwitcher');
@@ -501,7 +405,6 @@ toggleBtn.addEventListener('click', () => {
 async function init() {
     let teamId = getCookie('team');
 
-    console.log(teamId)
     if (!teamId) {
         teamFormDiv.style.display = 'block';
         tasksDiv.style.display = 'none';
@@ -515,8 +418,8 @@ async function init() {
 
             try {
                 const team = await createTeam(name, pass);
-                console.log("Team good")
-                const cookie = (await getCookieRequest(team.id))
+
+                const cookie = (await getCookieRequest(team.name))
 
                 setCookie('team', cookie);
                 teamId = team.id;
@@ -524,6 +427,7 @@ async function init() {
                 tasksDiv.style.display = 'block';
 
                 const tasks = await fetchTasks(cookie);
+
                 showTasks(tasks, teamId);
             } catch (err) {
                 alert('Failed to create team: ' + err.message);
@@ -536,6 +440,7 @@ async function init() {
             const tasks = await fetchTasks(teamId);
             teamFormDiv.style.display = 'none';
             tasksDiv.style.display = 'block';
+
             showTasks(tasks, teamId);
         } catch {
             // Invalid teamId in cookie: reset and show form
@@ -545,9 +450,6 @@ async function init() {
         }
     }
 
-    if (isAdminLoggedIn()) {
-        document.getElementById('adminToggle').style.display = 'block';
-    }
 }
 
 

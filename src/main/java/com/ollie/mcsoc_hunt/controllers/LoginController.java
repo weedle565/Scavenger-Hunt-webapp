@@ -38,3 +38,19 @@ public class LoginController {
     }
 
 }
+
+/*
+Scav 2 planning
+
+Known bugs
+Some people get logged out randomly
+Not able to join same team after multiple logins
+CSS doesn’t load sometimes
+
+New additions
+Hold points system internally /
+2 types of challenges /
+Remove timed challenges /
+Make people pick simple vs hard 
+Lock hard on completion of challenge
+ */

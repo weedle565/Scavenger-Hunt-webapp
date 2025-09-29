@@ -1,13 +1,17 @@
 package com.ollie.mcsoc_hunt.tests;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ollie.mcsoc_hunt.entities.Task;
 import com.ollie.mcsoc_hunt.exceptions.TeamNotFoundException;
 import com.ollie.mcsoc_hunt.entities.Team;
+import com.ollie.mcsoc_hunt.services.TaskService;
 import com.ollie.mcsoc_hunt.services.TeamService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,11 +22,12 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -37,6 +42,9 @@ public class TeamRequestTesting {
     @MockitoBean
     private TeamService teamService;
 
+    @MockitoBean
+    private TaskService taskService;
+
     private Team team;
 
     @BeforeEach
@@ -44,6 +52,7 @@ public class TeamRequestTesting {
         team = new Team();
         team.setId(1L);
         team.setName("test team");
+        team.setPoints(5);
     }
 
     @Test
@@ -51,9 +60,12 @@ public class TeamRequestTesting {
 
         Team teamToCreate = new Team();
         teamToCreate.setName("test team");
+        teamToCreate.setId(1L);
 
+        HashMap<Boolean, Team> expected = new HashMap<>();
+        expected.put(false, teamToCreate);
 
-        Mockito.when(teamService.createTeam(Mockito.any(Team.class))).thenReturn(team);
+        Mockito.when(teamService.createTeam(Mockito.any(Team.class))).thenReturn(expected);
 
         mockMvc.perform(post("/api/team").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(teamToCreate))).
                 andExpect(status().isCreated()).
@@ -155,6 +167,87 @@ public class TeamRequestTesting {
                 .andExpect(status().isInternalServerError());
     }
 
+    @Test
+    void getTeamPointsTest() throws Exception {
+
+        String jwt = generateTestJWT();
+
+        Mockito.when(teamService.getTeamByCookie(Mockito.anyString())).thenReturn(team);
+
+        mockMvc.perform(get("/api/team/points")
+                .header("Authorization", "Bearer " + jwt)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string("5"));
+    }
+
+    @Test
+    void getTeamPointsNotFound() throws Exception {
+        String fakeJwt = "Bearer " + generateFakeTestJWT();
+
+        // Arrange: mock the service to throw TeamNotFoundException for this JWT string
+        Mockito.when(teamService.getTeamByCookie(Mockito.anyString())).thenThrow(new TeamNotFoundException("Team not found"));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/team/points")
+                        .header("Authorization", fakeJwt)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Team not found"));
+    }
+
+    @Test
+    void testTeamEasyTaskCompletion() throws Exception {
+        String fakeJwt = "Bearer " + generateTestJWT();
+
+        Task task = new Task();
+        task.setId(1L);
+        task.setName("test team");
+        task.setDescription("Test task");
+        task.setCompleted(false);
+        task.setLocation("Test location");
+        task.setEasyValue(1);
+        task.setHardValue(3);
+
+        // Mock services
+        Mockito.when(taskService.getTaskById(Mockito.anyLong(), Mockito.anyString()))
+                .thenReturn(task);
+        Mockito.when(teamService.getTeamByCookie(Mockito.anyString()))
+                .thenReturn(team);
+
+        mockMvc.perform(get("/api/team/1/e")
+                        .header("Authorization", fakeJwt)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string("6")); // because controller returns task.getEasyValue()
+    }
+
+    @Test
+    void testTeamHardTaskCompletion() throws Exception {
+        String fakeJwt = "Bearer " + generateTestJWT();
+
+        Task task = new Task();
+        task.setId(1L);
+        task.setName("test team");
+        task.setDescription("Test task");
+        task.setCompleted(false);
+        task.setLocation("Test location");
+        task.setEasyValue(1);
+        task.setHardValue(3);
+
+        // Mock services
+        Mockito.when(taskService.getTaskById(Mockito.anyLong(), Mockito.anyString()))
+                .thenReturn(task);
+        Mockito.when(teamService.getTeamByCookie(Mockito.anyString()))
+                .thenReturn(team);
+
+        mockMvc.perform(get("/api/team/1/h")
+                        .header("Authorization", fakeJwt)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string("8")); // because controller returns task.getEasyValue()
+    }
+
     private String generateTestJWT() {
         long expirationMs = 86400000;
         return Jwts.builder()
@@ -236,11 +329,10 @@ public class TeamRequestTesting {
     void createTeamWithNullNameShouldFail() throws Exception {
         Team invalidTeam = new Team(); // no name set
 
-        // Unauthorised as the created team is null, which is used as the checker for when logins are wrong
         mockMvc.perform(post("/api/team")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidTeam)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isInternalServerError());
     }
 
     @Test

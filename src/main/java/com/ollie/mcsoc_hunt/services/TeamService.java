@@ -9,8 +9,7 @@ import lombok.Getter;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Getter
 @Service
@@ -25,24 +24,28 @@ public class TeamService {
         return teamRepo.findAll().stream().map(this::censorPassword).toList();
     }
 
-    public Team createTeam(Team team) {
+    public Map<Boolean, Team> createTeam(Team team) {
         if (team.getName() == null || team.getPassword() == null) {
             throw new IllegalArgumentException("Name and password must not be null");
         }
 
         if (checkIfExists(team)) {
-            System.out.println(team.getName());
-            return login(team);
+            HashMap<Boolean, Team> ret = new HashMap<>();
+            ret.put(true, login(team));
+            return ret;
         }
 
         Team hashedTeam = new Team();
         hashedTeam.setName(team.getName());
-        hashedTeam.setId(team.getId());
         hashedTeam.setPassword(BCrypt.hashpw(team.getPassword(), BCrypt.gensalt()));
         hashedTeam.setCompletedTasks(team.getCompletedTasks());
-        hashedTeam.setRevealedLocations(team.getRevealedLocations());
 
-        return teamRepo.save(hashedTeam);
+        Team savedTeam = teamRepo.save(hashedTeam);
+
+        HashMap<Boolean, Team> ret = new HashMap<>();
+        ret.put(false, savedTeam);
+
+        return ret;
     }
 
     private boolean checkIfExists(Team team) {
@@ -55,9 +58,7 @@ public class TeamService {
 
     private Team login(Team team) {
 
-        System.out.println(team);
         for (Team teamCheck : teamRepo.findAll()) {
-            System.out.println(teamCheck.getPassword());
             if (Objects.equals(teamCheck.getName(), team.getName()) && BCrypt.checkpw(team.getPassword(), teamCheck.getPassword())) return teamCheck;
         }
 
@@ -98,9 +99,8 @@ public class TeamService {
         teamRepo.deleteById(team.getId());
     }
 
-    public void addGuess(String location, Team team) {
-        team.addLocation(location);
-        teamRepo.save(team);
+    public void deleteTeamById(Long id) {
+        teamRepo.deleteById(id);
     }
 
     private Team censorPassword(Team team) {
@@ -108,7 +108,6 @@ public class TeamService {
         copy.setId(team.getId());
         copy.setName(team.getName());
         copy.setCompletedTasks(team.getCompletedTasks());
-        copy.setRevealedLocations(team.getRevealedLocations());
         copy.setPassword("Censored :)");
         return copy;
     }
@@ -124,6 +123,21 @@ public class TeamService {
         }
 
         return selectedTeam;
+    }
+
+    private void addPoints(String cookie, int points) {
+
+        Long user = Long.parseLong(JwtGenerator.extractSubject(cookie));
+
+        Team selectedTeam = null;
+
+        for (Team team : getAllTeams()) {
+            if (Objects.equals(team.getId(), user)) selectedTeam = team;
+        }
+        if (selectedTeam == null) return;
+
+        selectedTeam.setPoints(selectedTeam.getPoints() + points);
+
     }
 
 }

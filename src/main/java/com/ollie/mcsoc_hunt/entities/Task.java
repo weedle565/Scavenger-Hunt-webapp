@@ -17,21 +17,15 @@ public class Task {
 
     public Task(Task task) {
         this.id = task.id;
-        this.riddle = task.riddle;
         this.name = task.name;
         this.description = task.description;
         this.location = task.location;
-        this.hasSubtask = task.hasSubtask;
-        this.subtaskComplete = task.subtaskComplete;
         this.completed = task.completed;
     }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotEmpty
-    private String riddle;
 
     @NotEmpty(message = "Task name must be something")
     @Column(unique = true)
@@ -43,20 +37,20 @@ public class Task {
     @NotEmpty(message = "All tasks must have a location")
     private String location;
 
-    @NotNull
-    private Boolean hasSubtask;
+    @NotEmpty(message = "All challenges need an easy challenge")
+    private String challenge;
 
-    @NotNull
-    private Boolean subtaskComplete;
+    @NotEmpty(message = "Must have a points value")
+    private int easyValue;
+
+    @NotEmpty(message = "All challenges need a hard challenge")
+    private String hardChallenge;
+
+    @NotEmpty(message = "Must have a points value")
+    private int hardValue;
 
     @NotNull(message = "Must have a completed value")
     private Boolean completed;
-
-    private String subtaskTimeStarted;
-    private String subtaskTimeEnding;
-
-    @NotEmpty(message = "Must have a desc")
-    private String subtaskDescription;
 
 
 }

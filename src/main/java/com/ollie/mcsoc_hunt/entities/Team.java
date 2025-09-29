@@ -30,12 +30,14 @@ public class Team {
     private List<String> completedTasks = new ArrayList<>();
 
     @ElementCollection
-    private List<String> revealedLocations = new ArrayList<>();
+    private List<Integer> memberIds;
 
-    public void addLocation(String location) {
-        revealedLocations.add(location);
+    @NotBlank(message = "Teams must have 0 points, not null points ;-;")
+    private int points;
+
+    public void addTask(Task task) {
+        this.completedTasks.add(task.getName());
     }
-
 
 
 }
